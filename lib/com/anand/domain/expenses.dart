@@ -1,11 +1,11 @@
 
 class ExpenseRecord {
-  String expenseDate;
+  DateTime expenseDate;
   String description;
-  String category;
+  // String category;
   // String paymentBank;
   // String paymentMode;
-  // Category category;
+  Category category;
   PaymentBank paymentBank;
   PaymentMode paymentMode;
   double amount;
@@ -14,7 +14,7 @@ class ExpenseRecord {
   // ExpenseRecord.c1({ this.expenseDate, this. description, this. amount, this.category, this.paymentBank, this.paymentMode });
   ExpenseRecord.c1({ this.expenseDate, this. description, this. amount, this.category, this.paymentBank, this.paymentMode });
   // ExpenseRecord.c2({this.expenseDate, this.category, this.paymentBank, this.paymentMode});
-  ExpenseRecord.c2({this.expenseDate, this.category, this.paymentBank, this.paymentMode});
+  ExpenseRecord.c2({ this.expenseDate, this.category, this.paymentBank, this.paymentMode });
 
 }
 
@@ -22,7 +22,8 @@ class Category {
   int id;
   String category;
 
-  Category({ this.category });
+  Category({ this.id, this.category });
+  Category.c1({ this.category });
 }
 
 class PaymentBank {
@@ -30,6 +31,11 @@ class PaymentBank {
   String bank;
 
   PaymentBank({ this.id, this.bank });
+
+  @override
+  String toString() {
+    return this.bank;
+  }
 }
 
 class PaymentMode {
@@ -37,4 +43,9 @@ class PaymentMode {
   String mode;
 
   PaymentMode({ this.id, this.mode });
+
+  @override
+  String toString() {
+    return this.mode;
+  }
 }

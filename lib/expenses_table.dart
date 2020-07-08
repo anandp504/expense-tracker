@@ -1,24 +1,76 @@
-import 'package:expensesapp/com/anand/db/db_helper.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:expensesapp/com/anand/domain/expenses.dart';
+import 'package:intl/intl.dart';
 
-class ExpensesTable extends StatefulWidget {
+class ExpenseList extends StatefulWidget {
+
+  // final Future<List<ExpenseRecord>> expenses;
+  final StreamController<List<ExpenseRecord>> expenses;
+  ExpenseList({ this.expenses });
 
   @override
-  _ExpensesTableState createState() => _ExpensesTableState();
+  _ExpenseListState createState() => _ExpenseListState(expenses: this.expenses);
 }
 
-class _ExpensesTableState extends State<ExpensesTable> {
+class _ExpenseListState extends State<ExpenseList> {
 
-  Future<List<ExpenseRecord>> expenseRecords;
+  // Future<List<ExpenseRecord>> expenses;
+  StreamController<List<ExpenseRecord>> expenses;
+  final dateFormat = DateFormat("dd-MMM-yyyy");
+
+  _ExpenseListState({ this.expenses });
+
   var rowElementColor = Colors.grey[700];
+  // Future<List<ExpenseRecord>> expenseRecords;
+  // StreamController<List<ExpenseRecord>> expenseRecordStream;
+
+  /*
+  void getExpenseList() async =>
+      await DatabaseHelper.instance.getExpenses().then((records) {
+        expenseRecordStream.add(records);
+      });
+   */
+
+  /*
+  void getExpenseList() async =>
+      await expenses.then((records) {
+        expenseRecordStream.add(records);
+      });
+  */
 
   @override
   void initState() {
     super.initState();
-    expenseRecords = DatabaseHelper.instance.getExpenses();
+    // expenseRecords = DatabaseHelper.instance.getExpenses();
+    // expenseRecordStream = StreamController<List<ExpenseRecord>>();
+    // getExpenseList();
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<ExpenseRecord>>(
+      stream: expenses.stream,
+      builder: (context, snapshot) {
+        return snapshot.hasData
+            ? SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: FittedBox(
+            child: DataTable(
+              columns: createTableHeader(),
+              rows: snapshot.data.map((expense) => createExpenseRow(expense)).toList(),
+            ),
+          ),
+        )
+        : Center(
+            child: CircularProgressIndicator(),
+        );
+      },
+    );
+  }
+
+  /*
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<ExpenseRecord>>(
@@ -46,6 +98,7 @@ class _ExpensesTableState extends State<ExpensesTable> {
         }
     );
   }
+  */
 
   List<DataColumn> createTableHeader() {
     return [
@@ -65,8 +118,8 @@ class _ExpensesTableState extends State<ExpensesTable> {
   DataRow createExpenseRow(ExpenseRecord record) {
     return DataRow(
       cells: <DataCell>[
-        DataCell(Text(record.expenseDate, style: TextStyle(fontSize: 15.0, color: rowElementColor, fontFamily: "RopaSans-Regular"),),),
-        DataCell(Text(record.category, style: TextStyle(fontSize: 15.0, color: rowElementColor, fontFamily: "RopaSans-Regular"),),),
+        DataCell(Text(dateFormat.format(record.expenseDate), style: TextStyle(fontSize: 15.0, color: rowElementColor, fontFamily: "RopaSans-Regular"),),),
+        DataCell(Text(record.category.category, style: TextStyle(fontSize: 15.0, color: rowElementColor, fontFamily: "RopaSans-Regular"),),),
         DataCell(Text(record.paymentBank.bank, style: TextStyle(fontSize: 15.0, color: rowElementColor, fontFamily: "RopaSans-Regular"),),),
         DataCell(Text('${record.amount}', style: TextStyle(fontSize: 15.0, color: rowElementColor, fontFamily: "RopaSans-Regular"),),),
       ],

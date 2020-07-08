@@ -45,35 +45,44 @@ class DatabaseHelper {
 
 // SQL code to create the database table
   Future _onCreate(Database db, int version) async {
+    await db.execute('''CREATE TABLE payment_bank(id INTEGER PRIMARY KEY AUTOINCREMENT, bank TEXT NOT NULL)''');
+    await db.execute('''CREATE TABLE payment_mode(id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT NOT NULL)''');
+    await db.execute('''CREATE TABLE category(id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL)''');
+
     await db.execute(
       '''CREATE TABLE expenses(
           expense_date INTEGER NOT NULL, 
           description TEXT, 
-          category TEXT NOT NULL, 
-          payment_bank TEXT NOT NULL, 
-          payment_mode TEXT NOT NULL, 
-          amount REAL NOT NULL)''');
+          category_id INTEGET NOT NULL,
+          payment_bank_id INTEGER NOT NULL, 
+          payment_mode_id INTEGER NOT NULL, 
+          amount REAL NOT NULL,
+          FOREIGN KEY (payment_bank_id) REFERENCES payment_bank (id),
+          FOREIGN KEY (payment_mode_id) REFERENCES payment_mode (id),
+          FOREIGN KEY (category_id) REFERENCES category (id)
+          )''');
 
-    await db.execute('''CREATE TABLE payment_bank(id INTEGER PRIMARY KEY AUTOINCREMENT, bank TEXT NOT NULL)''');
+    Batch banksDbBatch = db.batch();
+    var banks = _createInsertRecords("bank", paymentBanks);
+    for(int i = 0; i < banks.length; i++) {
+      banksDbBatch.insert("payment_bank", banks[i]);
+    }
+    await banksDbBatch.commit(noResult: true);
 
-    await db.execute('''CREATE TABLE payment_mode(id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT NOT NULL)''');
-
-    Batch dbBatch = db.batch();
-    var banks = _createInsertRecords(paymentBanks);
-    banks.map((bank) => dbBatch.insert("payment_bank", bank));
-    await dbBatch.commit(noResult: true);
-
-    var modes = _createInsertRecords(paymentModes);
-    modes.map((mode) => dbBatch.insert("payment_mode", mode));
-    await dbBatch.commit(noResult: true);
+    Batch modesDbBatch = db.batch();
+    var modes = _createInsertRecords("mode", paymentModes);
+    for(int i = 0; i < modes.length; i++) {
+      modesDbBatch.insert("payment_mode", modes[i]);
+    }
+    await modesDbBatch.commit(noResult: true);
 
   }
 
-  List<Map<String, String>> _createInsertRecords(List<String> inputValues) {
+  List<Map<String, String>> _createInsertRecords(String columnName, List<String> inputValues) {
     var rows = List<Map<String, String>>();
-    inputValues.map(
-      (input) => rows.add(Map.from({"bank": input}))
-    );
+    for(int i = 0; i < inputValues.length; i++) {
+      rows.add(Map.from({"$columnName": "${inputValues[i]}"}));
+    }
     return rows;
   }
 
@@ -90,7 +99,7 @@ class DatabaseHelper {
 
   Future<List<PaymentMode>> getPaymentModes() async {
     var dbClient = await instance.database;
-    List<Map> dbRecords = await dbClient.rawQuery("SELECT id, bank FROM payment_mode");
+    List<Map> dbRecords = await dbClient.rawQuery("SELECT id, mode FROM payment_mode");
     List<PaymentMode> paymentModes = new List();
     for(int i = 0; i < dbRecords.length; i++) {
       var mode = PaymentMode(id: dbRecords[i]["id"], mode: dbRecords[i]["mode"]);
@@ -99,35 +108,69 @@ class DatabaseHelper {
     return paymentModes;
   }
 
+  Future<List<Category>> getCategories() async {
+    var dbClient = await instance.database;
+    List<Map> dbRecords = await dbClient.rawQuery("SELECT id, category FROM category");
+    List<Category> categories = new List();
+    for(int i = 0; i < dbRecords.length; i++) {
+      var category = Category(id: dbRecords[i]["id"], category: dbRecords[i]["category"]);
+      categories.add(category);
+    }
+    return categories;
+  }
+
   Future<int> saveExpense(ExpenseRecord expense) async {
     var dbClient = await instance.database;
     var record = Map<String, dynamic>();
-    record.putIfAbsent("expense_date", () => dateFormat.parse(expense.expenseDate).millisecondsSinceEpoch);
+    if (null == expense.category.id) {
+      int categoryId = await dbClient.insert("category", Map.from({"category": "${expense.category.category}" }));
+      record.putIfAbsent("category_id", () => categoryId);
+    } else {
+      record.putIfAbsent("category_id", () => expense.category.id);
+    }
+
+    // record.putIfAbsent("expense_date", () => dateFormat.parse(expense.expenseDate).millisecondsSinceEpoch);
+    record.putIfAbsent("expense_date", () => expense.expenseDate.millisecondsSinceEpoch);
     if (expense.description != null) record.putIfAbsent("description", () => expense.description);
-    record.putIfAbsent("category", () => expense.category);
-    record.putIfAbsent("payment_bank", () => expense.paymentBank);
-    record.putIfAbsent("payment_mode", () => expense.paymentMode);
+    // record.putIfAbsent("category", () => expense.category);
+    record.putIfAbsent("payment_bank_id", () => expense.paymentBank.id);
+    record.putIfAbsent("payment_mode_id", () => expense.paymentMode.id);
     record.putIfAbsent("amount", () => expense.amount);
-    int result = await dbClient.insert("expenses", record);
-    return result;
+    // int result = await dbClient.insert("expenses", record);
+    return dbClient.insert("expenses", record);
+    // return result;
   }
 
   Future<List<ExpenseRecord>> getExpenses() async {
     var dbClient = await instance.database;
-    List<Map> dbRecords = await dbClient.rawQuery("SELECT * FROM expenses");
     List<ExpenseRecord> expenseRecords = new List();
+    List<Map> dbRecords = new List();
+
+    try {
+      dbRecords = await dbClient.rawQuery(
+          "SELECT exp.expense_date, exp.description, exp.category_id, cat.category, exp.payment_bank_id, pb.bank AS payment_bank, "
+              "exp.payment_mode_id, pm.mode AS payment_mode, exp.amount "
+              "FROM expenses AS exp, payment_bank AS pb, payment_mode AS pm, category cat "
+              "WHERE exp.category_id = cat.id AND exp.payment_bank_id = pb.id "
+              "AND exp.payment_mode_id = pm.id ORDER BY exp.expense_date DESC;");
+    } on Exception catch (ex) {
+      print(ex.toString());
+    } catch (error) {
+      print(error);
+    }
+
     for(int i = 0; i < dbRecords.length; i++) {
       var expense = new ExpenseRecord.c1(
-        expenseDate: DateFormat.yMd().format(new DateTime.fromMillisecondsSinceEpoch(dbRecords[i]["expense_date"])),
+        // expenseDate: DateFormat.yMd().format(new DateTime.fromMillisecondsSinceEpoch(dbRecords[i]["expense_date"])),
+        expenseDate: new DateTime.fromMillisecondsSinceEpoch(dbRecords[i]["expense_date"]),
         description: dbRecords[i]["description"],
-        category: dbRecords[i]["category"],
-        paymentBank: dbRecords[i]["payment_bank"],
-        paymentMode: dbRecords[i]["payment_mode"],
+        category: Category(id: dbRecords[i]["category_id"], category: dbRecords[i]["category"]),
+        paymentBank: PaymentBank(id: dbRecords[i]["payment_bank_id"], bank: dbRecords[i]["payment_bank"]),
+        paymentMode: PaymentMode(id: dbRecords[i]["payment_mode_id"], mode: dbRecords[i]["payment_mode"]),
         amount: dbRecords[i]["amount"]
       );
       expenseRecords.add(expense);
     }
-    expenseRecords.map((exp) => print("${exp.expenseDate} | ${exp.category} | ${exp.paymentBank}"));
     return expenseRecords;
   }
 

@@ -1,14 +1,17 @@
 import 'package:expensesapp/com/anand/db/db_helper.dart';
-import 'package:expensesapp/com/anand/domain/expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:expensesapp/expenses_table.dart';
 import 'package:expensesapp/expense_form.dart';
+import 'dart:async';
+import 'package:expensesapp/com/anand/domain/expenses.dart';
 
 void main() => runApp(
     MaterialApp(
       home: ExpensesAppHome(),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.green),
       routes: <String, WidgetBuilder> {
-        "/ExpenseForm": (BuildContext context) => ExpenseForm()
+        "/ExpenseForm": (BuildContext context) => ExpenseDetail()
       },
     ),
 ); // MaterialApp
@@ -20,15 +23,26 @@ class ExpensesAppHome extends StatefulWidget {
 }
 
 class _ExpensesAppHomeState extends State<ExpensesAppHome> {
-  final DatabaseHelper dbHelper = DatabaseHelper.instance;
+  // final DatabaseHelper dbHelper = DatabaseHelper.instance;
+  // Future<List<ExpenseRecord>> expenseRecords;
+  // Widget expenseListWidget;
 
-  /*
-  List<ExpenseRecord> expenses = [
-    ExpenseRecord.c1(expenseDate: "2020-06-26", description: "", category: "Milk", paymentBank: "CITIBANK", paymentMode: "UPI", amount: 30),
-    ExpenseRecord.c1(expenseDate: "2020-06-25", description: "", category: "Biscuit", paymentBank: "ICICI", paymentMode: "UPI", amount: 100),
-    ExpenseRecord.c1(expenseDate: "2020-06-24", description: "", category: "Rice", paymentBank: "CITIBANK", paymentMode: "UPI", amount: 60),
-  ];
-   */
+  StreamController<List<ExpenseRecord>> expenseRecordStream;
+
+  void getExpenseList() async =>
+      await DatabaseHelper.instance.getExpenses().then((records) {
+        expenseRecordStream.add(records);
+      });
+
+  @override
+  void initState() {
+    super.initState();
+    print("Initializing Expenses Home Widget");
+    // expenseRecords = DatabaseHelper.instance.getExpenses();
+    // expenseListWidget = ExpenseList(expenses: DatabaseHelper.instance.getExpenses(),);
+    expenseRecordStream = new StreamController();
+    DatabaseHelper.instance.getExpenses()?.then((records) => expenseRecordStream.add(records));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,16 +59,25 @@ class _ExpensesAppHomeState extends State<ExpensesAppHome> {
             )
         ),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent[600],
+        // backgroundColor: Colors.blueAccent[600],
       ),
-      body: ExpensesTable(),
+      body: ExpenseList(expenses: expenseRecordStream,),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.red[600],
+        // backgroundColor: Colors.red[600],
         child: IconButton(
           icon: Icon(Icons.add),
           tooltip: 'Add Expense',
           onPressed: () {
-            Navigator.of(context).pushNamed("/ExpenseForm");
+            Navigator.push(context, MaterialPageRoute(builder: (context){
+              return ExpenseDetail(appBarTitle: "Add Expense",);
+            }))
+            .then((value) {
+              setState(() {
+                print("Obtaining expense records from DB...");
+                // expenseListWidget = ExpenseList(expenses: DatabaseHelper.instance.getExpenses());
+                DatabaseHelper.instance.getExpenses()?.then((records) => expenseRecordStream.add(records));
+              });
+            });
           }, // OnPressed
         ),
       ),
