@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:expensesapp/com/anand/domain/expenses.dart';
+import 'package:expensesapp/com/anand/domain/expense_models.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -11,9 +11,9 @@ class DatabaseHelper {
   static final _databaseName = "expenses.db";
   static final _databaseVersion = 1;
 
-  final DateFormat dateFormat = DateFormat("dd-MMM-yyyy");
+  final DateFormat dateFormat = DateFormat("dd-MMM-yy HH:mm");
 
-  List<String> paymentModes = ["UPI", "CREDIT CARD", "DEBIT CARD", "NEFT", "IMPS", "ECS"];
+  List<String> paymentModes = ["UPI", "CREDIT CARD", "CASH", "DEBIT CARD", "ACCOUNT DEBIT"];
   List<String> paymentBanks = ["Bank of Baroda", "Bank of India", "Bank of Maharashtra", "Canara Bank",
     "Central Bank of India", "Citibank", "Indian Bank", "Indian Overseas Bank", "Punjab and Sind Bank", "Punjab National Bank",
     "State Bank of India", "UCO Bank", "Union Bank of India", "Axis Bank", "Bandhan Bank", "Catholic Syrian Bank",
@@ -51,6 +51,7 @@ class DatabaseHelper {
 
     await db.execute(
       '''CREATE TABLE expenses(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           expense_date INTEGER NOT NULL, 
           description TEXT, 
           category_id INTEGET NOT NULL,
@@ -119,7 +120,7 @@ class DatabaseHelper {
     return categories;
   }
 
-  Future<int> saveExpense(ExpenseRecord expense) async {
+  Future<int> saveExpense(Expense expense) async {
     var dbClient = await instance.database;
     var record = Map<String, dynamic>();
     if (null == expense.category.id) {
@@ -129,26 +130,20 @@ class DatabaseHelper {
       record.putIfAbsent("category_id", () => expense.category.id);
     }
 
-    // record.putIfAbsent("expense_date", () => dateFormat.parse(expense.expenseDate).millisecondsSinceEpoch);
     record.putIfAbsent("expense_date", () => expense.expenseDate.millisecondsSinceEpoch);
     if (expense.description != null) record.putIfAbsent("description", () => expense.description);
-    // record.putIfAbsent("category", () => expense.category);
     record.putIfAbsent("payment_bank_id", () => expense.paymentBank.id);
     record.putIfAbsent("payment_mode_id", () => expense.paymentMode.id);
     record.putIfAbsent("amount", () => expense.amount);
-    // int result = await dbClient.insert("expenses", record);
     return dbClient.insert("expenses", record);
-    // return result;
   }
 
-  Future<List<ExpenseRecord>> getExpenses() async {
+  Future<List<Expense>> getExpenses() async {
     var dbClient = await instance.database;
-    List<ExpenseRecord> expenseRecords = new List();
     List<Map> dbRecords = new List();
-
     try {
       dbRecords = await dbClient.rawQuery(
-          "SELECT exp.expense_date, exp.description, exp.category_id, cat.category, exp.payment_bank_id, pb.bank AS payment_bank, "
+          "SELECT exp.id AS expense_id, exp.expense_date, exp.description, exp.category_id, cat.category, exp.payment_bank_id, pb.bank AS payment_bank, "
               "exp.payment_mode_id, pm.mode AS payment_mode, exp.amount "
               "FROM expenses AS exp, payment_bank AS pb, payment_mode AS pm, category cat "
               "WHERE exp.category_id = cat.id AND exp.payment_bank_id = pb.id "
@@ -158,20 +153,103 @@ class DatabaseHelper {
     } catch (error) {
       print(error);
     }
+    return _transformDbDataToModel(dbRecords);
+  }
+
+  Future<List<Expense>> getExpensesWithOffset(int limit, int offset) async {
+    var dbClient = await instance.database;
+    List<Map> dbRecords = new List();
+    try {
+      dbRecords = await dbClient.rawQuery(
+          "SELECT exp.id AS expense_id, exp.expense_date, exp.description, exp.category_id, cat.category, exp.payment_bank_id, pb.bank AS payment_bank, "
+              "exp.payment_mode_id, pm.mode AS payment_mode, exp.amount "
+              "FROM expenses AS exp, payment_bank AS pb, payment_mode AS pm, category cat "
+              "WHERE exp.category_id = cat.id AND exp.payment_bank_id = pb.id "
+              "AND exp.payment_mode_id = pm.id ORDER BY exp.expense_date DESC LIMIT $limit OFFSET $offset;");
+    } on Exception catch (ex) {
+      print(ex.toString());
+    } catch (error) {
+      print(error);
+    }
+    return _transformDbDataToModel(dbRecords);;
+  }
+
+  Future<int> getExpenseRecordCount() async {
+    var dbClient = await instance.database;
+    List<Map> dbRecords = new List();
+    try {
+      dbRecords = await dbClient.rawQuery("SELECT COUNT(1) AS expenses_count FROM expenses;");
+    } on Exception catch (ex) {
+      print(ex.toString());
+    } catch (error) {
+      print(error);
+    }
+
+    int expensesRecordCount = 0;
+    for(int i = 0; i < dbRecords.length; i++) {
+      expensesRecordCount = dbRecords[i]["expenses_count"];
+    }
+    return expensesRecordCount;
+  }
+
+  Future<List<AggregateResult>> getCategoriesAggregation() async {
+    String categoriesQuery = "SELECT cat.category, SUM(exp.amount) AS amount "
+        "FROM expenses AS exp, category cat "
+        "WHERE exp.category_id = cat.id "
+        "GROUP BY cat.category ORDER BY SUM(exp.amount) DESC LIMIT 5 ;";
+
+    return _getAggregationResult(categoriesQuery, "category");
+  }
+
+  Future<List<AggregateResult>> getPaymentModeAggregation() async {
+    String categoriesQuery = "SELECT pm.mode, SUM(exp.amount) AS amount "
+        "FROM expenses AS exp, payment_mode AS pm "
+        "WHERE exp.payment_mode_id = pm.id "
+        "GROUP BY pm.mode ORDER BY SUM(exp.amount) DESC;";
+
+    return _getAggregationResult(categoriesQuery, "mode");
+  }
+
+  _transformDbDataToModel(List<Map> dbRecords) {
+    List<Expense> expenseRecords = new List();
 
     for(int i = 0; i < dbRecords.length; i++) {
-      var expense = new ExpenseRecord.c1(
-        // expenseDate: DateFormat.yMd().format(new DateTime.fromMillisecondsSinceEpoch(dbRecords[i]["expense_date"])),
-        expenseDate: new DateTime.fromMillisecondsSinceEpoch(dbRecords[i]["expense_date"]),
-        description: dbRecords[i]["description"],
-        category: Category(id: dbRecords[i]["category_id"], category: dbRecords[i]["category"]),
-        paymentBank: PaymentBank(id: dbRecords[i]["payment_bank_id"], bank: dbRecords[i]["payment_bank"]),
-        paymentMode: PaymentMode(id: dbRecords[i]["payment_mode_id"], mode: dbRecords[i]["payment_mode"]),
-        amount: dbRecords[i]["amount"]
+      var expense = new Expense.c1(
+          id: dbRecords[i]["expense_id"],
+          expenseDate: new DateTime.fromMillisecondsSinceEpoch(dbRecords[i]["expense_date"]),
+          description: dbRecords[i]["description"],
+          category: Category(id: dbRecords[i]["category_id"], category: dbRecords[i]["category"]),
+          paymentBank: PaymentBank(id: dbRecords[i]["payment_bank_id"], bank: dbRecords[i]["payment_bank"]),
+          paymentMode: PaymentMode(id: dbRecords[i]["payment_mode_id"], mode: dbRecords[i]["payment_mode"]),
+          amount: dbRecords[i]["amount"]
       );
       expenseRecords.add(expense);
     }
     return expenseRecords;
+  }
+
+  Future<List<AggregateResult>> _getAggregationResult(String query, String dimension) async {
+
+    var dbClient = await instance.database;
+    List<AggregateResult> aggResult = new List();
+    List<Map> dbRecords = new List();
+
+    try {
+      dbRecords = await dbClient.rawQuery(query);
+    } on Exception catch (ex) {
+      print(ex.toString());
+    } catch (error) {
+      print(error);
+    }
+
+    for(int i = 0; i < dbRecords.length; i++) {
+      var aggregation = new AggregateResult(
+          dimension: dbRecords[i][dimension],
+          amount: dbRecords[i]["amount"]
+      );
+      aggResult.add(aggregation);
+    }
+    return aggResult;
   }
 
 }

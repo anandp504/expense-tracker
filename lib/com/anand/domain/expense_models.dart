@@ -1,20 +1,16 @@
 
-class ExpenseRecord {
+class Expense {
+  int id;
   DateTime expenseDate;
   String description;
-  // String category;
-  // String paymentBank;
-  // String paymentMode;
   Category category;
   PaymentBank paymentBank;
   PaymentMode paymentMode;
   double amount;
 
-  ExpenseRecord();
-  // ExpenseRecord.c1({ this.expenseDate, this. description, this. amount, this.category, this.paymentBank, this.paymentMode });
-  ExpenseRecord.c1({ this.expenseDate, this. description, this. amount, this.category, this.paymentBank, this.paymentMode });
-  // ExpenseRecord.c2({this.expenseDate, this.category, this.paymentBank, this.paymentMode});
-  ExpenseRecord.c2({ this.expenseDate, this.category, this.paymentBank, this.paymentMode });
+  Expense();
+  Expense.c1({ this.id, this.expenseDate, this. description, this. amount, this.category, this.paymentBank, this.paymentMode });
+  Expense.c2({ this.expenseDate, this.category, this.paymentBank, this.paymentMode });
 
 }
 
@@ -48,4 +44,11 @@ class PaymentMode {
   String toString() {
     return this.mode;
   }
+}
+
+class AggregateResult {
+  String dimension;
+  double amount;
+
+  AggregateResult({this.dimension, this.amount});
 }
