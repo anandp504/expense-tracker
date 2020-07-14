@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:searchable_dropdown/searchable_dropdown.dart';
 
@@ -26,9 +27,10 @@ class _ExpenseDetailFormState extends State<ExpenseDetailForm> {
   final dateFormat = DateFormat("dd-MMM-yy HH:mm");
   final double sizedBoxHeight = 5.0;
 
-  Future<List<PaymentMode>> modes;
-  Future<List<PaymentBank>> banks;
-  Future<List<Category>> categories;
+  StreamController<List<PaymentMode>> paymentModesStream;
+  StreamController<List<PaymentBank>> paymentBanksStream;
+  StreamController<List<Category>> categoriesStream;
+
   DateTime date;
 
   Expense _expenseRecord = Expense();
@@ -36,160 +38,145 @@ class _ExpenseDetailFormState extends State<ExpenseDetailForm> {
 
   @override
   void initState() {
-    categories = DatabaseHelper.instance.getCategories();
-    modes = DatabaseHelper.instance.getPaymentModes();
-    banks = DatabaseHelper.instance.getBanks();
     super.initState();
+    paymentModesStream = new StreamController();
+    paymentBanksStream = new StreamController();
+    categoriesStream = new StreamController();
+    DatabaseHelper.instance.getPaymentModes()?.then((res) => paymentModesStream.add(res));
+    DatabaseHelper.instance.getBanks()?.then((res) => paymentBanksStream.add(res));
+    DatabaseHelper.instance.getCategories()?.then((res) => categoriesStream.add(res));
   }
 
   Widget _buildPaymentBanksDropDown() {
-    return FutureBuilder<List<PaymentBank>>(
-        future: banks,
-        builder: (BuildContext context,
-            AsyncSnapshot<List<PaymentBank>> snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.none:
-              return Text('No PaymentBank data found', style: TextStyle(color: Colors.grey[600]),);
-            case ConnectionState.waiting:
-              return Text('Loading PaymentBank data', style: TextStyle(color: Colors.grey[600]),);
-            case ConnectionState.done:
-              List<DropdownMenuItem<PaymentBank>> bankDropDown = new List();
-              List<PaymentBank> bankData = snapshot.data;
-              for(int i = 0; i < bankData.length; i++) {
-                bankDropDown.add(
-                  DropdownMenuItem(
-                    child: Text(bankData[i].bank),
-                    value: bankData[i],
-                  )
-                );
-              }
-              return SearchableDropdown.single(
-                items: bankDropDown,
-                value: _expenseRecord.paymentBank,
-                // searchHint: "Search for a Bank",
-                label: "Payment Bank",
-                // style: DefaultTextStyle.of(context).style,
-                onChanged: (value) { setState(() {
-                  _expenseRecord.paymentBank = value; });
-                },
-                isExpanded: true,
-                validator: (PaymentBank item) {
-                  if (item == null)
-                    return "Please enter a payment bank";
-                  else
-                    return null;
-                },
-              );
-            default:
-              return Text('No PaymentBank data found', style: TextStyle(color: Colors.grey[600]),);
+    return StreamBuilder<List<PaymentBank>>(
+        stream: paymentBanksStream.stream,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          } else {
+            List<DropdownMenuItem<PaymentBank>> bankDropDown = new List();
+            List<PaymentBank> bankData = snapshot.data;
+            for (int i = 0; i < bankData.length; i++) {
+              bankDropDown.add(DropdownMenuItem(
+                child: Text(bankData[i].bank),
+                value: bankData[i],
+              ));
+            }
+            return SearchableDropdown.single(
+              items: bankDropDown,
+              value: _expenseRecord.paymentBank,
+              label: "Payment Bank",
+              onChanged: (value) {
+                setState(() {
+                  _expenseRecord.paymentBank = value;
+                });
+              },
+              isExpanded: true,
+              validator: (PaymentBank item) {
+                if (item == null)
+                  return "Please enter a payment bank";
+                else
+                  return null;
+              },
+            );
           }
-        }
-    );
+        });
   }
 
   Widget _buildPaymentModeDropDown(BuildContext context) {
-    return FutureBuilder<List<PaymentMode>>(
-        future: modes,
-        builder: (BuildContext context,
-            AsyncSnapshot<List<PaymentMode>> snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.none:
-              return Text('No PaymentMode data found', style: TextStyle(color: Colors.grey[600]),);
-            case ConnectionState.waiting:
-              return Text('Loading PaymentMode data', style: TextStyle(color: Colors.grey[600]),);
-            case ConnectionState.done:
-              List<DropdownMenuItem<PaymentMode>> paymentModeDropDown = new List();
-              List<PaymentMode> modeData = snapshot.data;
-              for(int i = 0; i < modeData.length; i++) {
-                paymentModeDropDown.add(
-                    DropdownMenuItem(
-                      child: Text(modeData[i].mode),
-                      value: modeData[i],
-                    )
-                );
-              }
-              return SearchableDropdown.single(
-                items: paymentModeDropDown,
-                value: _expenseRecord.paymentMode,
-                // searchHint: "Search for a Payment Mode",
-                label: "Payment Mode",
-                // style: DefaultTextStyle.of(context).style,
-                onChanged: (item) { setState(() {
-                  _expenseRecord.paymentMode = item;
-                  });
-                },
-                isExpanded: true,
-                validator: (item) {
-                  if (item == null)
-                    return "Please enter a payment mode";
-                  else
-                    return null;
-                },
-              );
-            default:
-              return Text('No PaymentMode data found', style: TextStyle(color: Colors.grey[600]),);
+    return StreamBuilder<List<PaymentMode>>(
+      stream: paymentModesStream.stream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        } else {
+          List<DropdownMenuItem<PaymentMode>> paymentModeDropDown = new List();
+          List<PaymentMode> modeData = snapshot.data;
+          for (int i = 0; i < modeData.length; i++) {
+            paymentModeDropDown.add(DropdownMenuItem(
+              child: Text(modeData[i].mode),
+              value: modeData[i],
+            ));
           }
+          return SearchableDropdown.single(
+            items: paymentModeDropDown,
+            value: _expenseRecord.paymentMode,
+            // searchHint: "Search for a Payment Mode",
+            label: "Payment Mode",
+            // style: DefaultTextStyle.of(context).style,
+            onChanged: (item) {
+              setState(() {
+                _expenseRecord.paymentMode = item;
+              });
+            },
+            isExpanded: true,
+            validator: (item) {
+              if (item == null)
+                return "Please enter a payment mode";
+              else
+                return null;
+            },
+          );
         }
+      },
     );
   }
 
-
-  _buildCategoriesDropDown(BuildContext context) {
-    return FutureBuilder<List<Category>>(
-        future: categories,
-        builder: (BuildContext context,
-            AsyncSnapshot<List<Category>> snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.none:
-              return Text('No PaymentMode data found', style: TextStyle(color: Colors.grey[600]),);
-            case ConnectionState.waiting:
-              return Text('Loading PaymentMode data', style: TextStyle(color: Colors.grey[600]),);
-            case ConnectionState.done:
-              List<Category> categoriesList = snapshot.data;
-              return TypeAheadFormField<Category>(
-                textFieldConfiguration: TextFieldConfiguration(
-                  controller: _categoriesController,
-                  // style: DefaultTextStyle.of(context).style,
-                  decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Category'),
-                ),
-                suggestionsCallback: (pattern) {
-                  List<Category> filteredCategories = new List();
-                  filteredCategories.addAll(categoriesList);
-                  filteredCategories.retainWhere((s) => s.category.toLowerCase().contains(pattern.toLowerCase()));
-                  return filteredCategories;
-                },
-                itemBuilder: (context, suggestion) {
-                  return ListTile(
-                    leading: Icon(Icons.category),
-                    title: Text(suggestion.category),
-                  );
-                },
-                transitionBuilder: (context, suggestionsBox, controller) {
-                  return suggestionsBox;
-                },
-                onSuggestionSelected: (suggestion) {
-                  this._categoriesController.text = suggestion.category;
-                  _expenseRecord.category = suggestion;
-                },
-                validator: (value) {
-                  if (null == value) {
-                    return "Please enter a category";
-                  }
-                  return null;
-                },
-                onSaved: (value) => setState(() {
-                  if (_expenseRecord.category == null) {
-                    _expenseRecord.category = Category(category: value);
-                  }
-                }),
-              );
-            default:
-              return Text('No PaymentMode data found', style: TextStyle(color: Colors.grey[600]),);
+  Widget _buildCategoriesDropDown(BuildContext context) {
+    return StreamBuilder<List<Category>>(
+        stream: categoriesStream.stream,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          } else {
+            List<Category> categoriesList = snapshot.data;
+            return TypeAheadFormField<Category>(
+              textFieldConfiguration: TextFieldConfiguration(
+                controller: _categoriesController,
+                // style: DefaultTextStyle.of(context).style,
+                decoration: InputDecoration(
+                    border: OutlineInputBorder(), hintText: 'Category'),
+              ),
+              suggestionsCallback: (pattern) {
+                List<Category> filteredCategories = new List();
+                filteredCategories.addAll(categoriesList);
+                filteredCategories.retainWhere((s) =>
+                    s.category.toLowerCase().contains(pattern.toLowerCase()));
+                return filteredCategories;
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  leading: Icon(Icons.category),
+                  title: Text(suggestion.category),
+                );
+              },
+              transitionBuilder: (context, suggestionsBox, controller) {
+                return suggestionsBox;
+              },
+              onSuggestionSelected: (suggestion) {
+                this._categoriesController.text = suggestion.category;
+                _expenseRecord.category = suggestion;
+              },
+              validator: (value) {
+                if (null == value || value.isEmpty) {
+                  return "Please enter a category";
+                }
+                return null;
+              },
+              onSaved: (value) => setState(() {
+                if (_expenseRecord.category == null) {
+                  _expenseRecord.category = Category(category: value);
+                }
+              }),
+            );
           }
-        }
-    );
+        });
   }
 
   void moveToLastScreen() {

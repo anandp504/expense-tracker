@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:expensesapp/com/anand/domain/expense_models.dart';
+import 'package:expensesapp/com/anand/db/db_helper.dart';
 
 class ExpenseDetail extends StatelessWidget {
 
@@ -80,6 +83,12 @@ class ExpenseDetail extends StatelessWidget {
                           dateFormat.format(expense.expenseDate),
                           // style: TextStyle(fontWeight: FontWeight.bold),
                         ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete,),
+                          onPressed: () {
+                            _showDialog(context);
+                          },
+                        ),
                       ),
                       Divider(),
                       _buildListTile(
@@ -96,6 +105,31 @@ class ExpenseDetail extends StatelessWidget {
           ]
         ),
       ),
+    );
+  }
+
+  _showDialog(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Expense", style: TextStyle(fontWeight: FontWeight.bold),),
+          content: Text("Deleting an expense cannot be undone. Do you want to continue?"),
+          actions: [
+            FlatButton(
+              child: Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold),),
+              onPressed: () => Navigator.pop(context),
+            ),
+            FlatButton(
+              child: Text("Delete", style: TextStyle(fontWeight: FontWeight.bold),),
+              onPressed: () {
+                DatabaseHelper.instance.deleteExpense(expense.id);
+                Navigator.of(context).popUntil(ModalRoute.withName("/"));
+              },
+            )
+          ],
+        );
+      }
     );
   }
 }

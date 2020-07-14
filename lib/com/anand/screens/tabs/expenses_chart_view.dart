@@ -3,9 +3,7 @@ import 'dart:async';
 
 import 'package:expensesapp/com/anand/db/db_helper.dart';
 import 'package:expensesapp/com/anand/screens/charts/expense_pie_chart.dart';
-import 'package:expensesapp/com/anand/screens/expenses_list.dart';
 import 'package:expensesapp/com/anand/screens/charts/expenses_bar_chart.dart';
-import 'package:expensesapp/com/anand/screens/expenses_table.dart';
 import 'package:expensesapp/com/anand/domain/expense_models.dart';
 
 

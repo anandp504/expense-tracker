@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 void main() => runApp(
     MaterialApp(
       // home: ExpensesAppHome(),
+      initialRoute: "/",
       home: ExpensesAppHomeTab(),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

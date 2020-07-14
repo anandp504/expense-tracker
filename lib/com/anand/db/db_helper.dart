@@ -252,4 +252,8 @@ class DatabaseHelper {
     return aggResult;
   }
 
+  Future<int> deleteExpense(int expenseId) async {
+    var dbClient = await instance.database;
+    return await dbClient.delete("expenses", where: "id = ?", whereArgs: [expenseId]);
+  }
 }
