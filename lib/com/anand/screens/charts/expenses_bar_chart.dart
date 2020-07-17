@@ -18,7 +18,6 @@ class CategorySpendSlice {
 
 class ExpensesBar extends StatefulWidget {
 
-  // final StreamController<List<AggregateResult>> expenses;
   final Stream<List<AggregateResult>> expenses;
 
   ExpensesBar({ this.expenses });
@@ -29,7 +28,6 @@ class ExpensesBar extends StatefulWidget {
 
 class _ExpensesBarState extends State<ExpensesBar> {
 
-  // StreamController<List<AggregateResult>> expenses;
   Stream<List<AggregateResult>> expenses;
   final dateFormat = DateFormat("dd-MMM-yyyy");
 
@@ -44,7 +42,6 @@ class _ExpensesBarState extends State<ExpensesBar> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<AggregateResult>>(
-        // stream: expenses.stream,
         stream: expenses,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {

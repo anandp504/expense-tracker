@@ -18,7 +18,6 @@ class PaymentModeSpendSlice {
 
 class ExpensesPie extends StatefulWidget {
 
-  // final StreamController<List<AggregateResult>> expenses;
   final Stream<List<AggregateResult>> expenses;
 
   ExpensesPie({ this.expenses });
@@ -29,7 +28,6 @@ class ExpensesPie extends StatefulWidget {
 
 class _ExpensesPieState extends State<ExpensesPie> {
 
-  // StreamController<List<AggregateResult>> expenses;
   Stream<List<AggregateResult>> expenses;
   final dateFormat = DateFormat("dd-MMM-yyyy");
 
@@ -44,7 +42,6 @@ class _ExpensesPieState extends State<ExpensesPie> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<AggregateResult>>(
-        // stream: expenses.stream,
         stream: expenses,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {

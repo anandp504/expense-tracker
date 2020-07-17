@@ -14,38 +14,16 @@ class ExpensesAppHomeTab extends StatefulWidget {
 
 class _ExpensesAppHomeTabState extends State<ExpensesAppHomeTab> with SingleTickerProviderStateMixin {
 
-  /*
-  StreamController<List<ExpenseRecord>> expenseRecordsStream;
-  StreamController<List<AggregateResult>> expensesBarChartStream;
-  StreamController<List<AggregateResult>> expensesPieChartStream;
-  */
-
   TabController _tabController;
   ExpensesModel expensesModel;
   Stream<List<AggregateResult>> expensesBarChartStream;
   Stream<List<AggregateResult>> expensesPieChartStream;
-
-  /*
-  void getChartData() {
-    DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream.add(records));
-    DatabaseHelper.instance.getPaymentModeAggregation().then((records) => expensesPieChartStream.add(records));
-  }
-  */
 
   @override
   void initState() {
     super.initState();
     _tabController = new TabController(length: 2, vsync: this);
     expensesModel = ExpensesModel();
-    // DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream = Stream.value(records));
-    // DatabaseHelper.instance.getPaymentModeAggregation().then((records) => expensesPieChartStream = Stream.value(records));
-    /*
-    expenseRecordsStream = new StreamController();
-    expensesBarChartStream = new StreamController();
-    expensesPieChartStream = new StreamController();
-    getChartData();
-    DatabaseHelper.instance.getExpenses().then((records) => expenseRecordsStream.add(records));
-     */
   }
 
   @override
@@ -72,8 +50,6 @@ class _ExpensesAppHomeTabState extends State<ExpensesAppHomeTab> with SingleTick
           controller: _tabController,
         ),
       ),
-      // body: ExpenseList(expenses: expenseRecordStream,),
-      // body: ExpenseTileList(expenses: expenseRecordStream,),
       body: TabBarView(
         children: [
           // ExpenseTileList(),
@@ -94,11 +70,6 @@ class _ExpensesAppHomeTabState extends State<ExpensesAppHomeTab> with SingleTick
                 expensesModel.refresh();
                 expensesBarChartStream = DatabaseHelper.instance.getCategoriesAggregation().asStream();
                 expensesPieChartStream = DatabaseHelper.instance.getPaymentModeAggregation().asStream();
-                /*
-                DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream.add(records));
-                DatabaseHelper.instance.getPaymentModeAggregation()?.then((records) => expensesPieChartStream.add(records));
-                DatabaseHelper.instance.getExpenses()?.then((records) => expenseRecordsStream.add(records));
-                 */
               });
             });
           }, // OnPressed

@@ -26,7 +26,6 @@ class _ExpenseTileListScrollState extends State<ExpenseTileListScroll> {
 
   @override
   void initState() {
-    // expensesModel = new ExpensesModel();
     expensesModel.refresh();
     scrollController.addListener(() {
       if (scrollController.position.maxScrollExtent == scrollController.offset) {
