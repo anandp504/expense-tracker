@@ -6,28 +6,24 @@ import 'package:expensesapp/com/anand/domain/expense_scroll_model.dart';
 import 'package:expensesapp/com/anand/screens/expense_summary_card.dart';
 
 
-class ExpenseTileListScroll extends StatefulWidget {
+class ExpenseTileListScrollNew extends StatefulWidget {
 
-  final ExpensesModel expensesModel;
-  ExpenseTileListScroll({this.expensesModel});
+  ExpenseTileListScrollNew();
 
   @override
-  _ExpenseTileListScrollState createState() => _ExpenseTileListScrollState(expensesModel: this.expensesModel);
+  _ExpenseTileListScrollNewState createState() => _ExpenseTileListScrollNewState();
 }
 
-class _ExpenseTileListScrollState extends State<ExpenseTileListScroll> {
+class _ExpenseTileListScrollNewState extends State<ExpenseTileListScrollNew> {
 
   final scrollController = ScrollController();
   ExpensesModel expensesModel;
   final dateFormat = DateFormat("MMMMd");
   final String rupeeSymbol = "\u20B9";
 
-  _ExpenseTileListScrollState({this.expensesModel});
-
   @override
   void initState() {
-    // expensesModel = new ExpensesModel();
-    expensesModel.refresh();
+    expensesModel = new ExpensesModel();
     scrollController.addListener(() {
       if (scrollController.position.maxScrollExtent == scrollController.offset) {
         expensesModel.loadMore();

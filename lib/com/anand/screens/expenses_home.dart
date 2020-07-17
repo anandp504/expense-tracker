@@ -19,10 +19,13 @@ class _ExpensesAppHomeState extends State<ExpensesAppHome> {
   // Future<List<ExpenseRecord>> expenseRecords;
   // Widget expenseListWidget;
 
-  StreamController<List<AggregateResult>> expensesBarChartStream;
-  StreamController<List<AggregateResult>> expensesPieChartStream;
+  // StreamController<List<AggregateResult>> expensesBarChartStream;
+  // StreamController<List<AggregateResult>> expensesPieChartStream;
 
+  Stream<List<AggregateResult>> expensesBarChartStream;
+  Stream<List<AggregateResult>> expensesPieChartStream;
 
+  /*
   void getExpenseList() async {
     await DatabaseHelper.instance.getCategoriesAggregation().then((records) {
       expensesBarChartStream.add(records);
@@ -32,6 +35,7 @@ class _ExpensesAppHomeState extends State<ExpensesAppHome> {
       expensesPieChartStream.add(records);
     });
   }
+  */
 
   @override
   void initState() {
@@ -39,8 +43,9 @@ class _ExpensesAppHomeState extends State<ExpensesAppHome> {
     print("Initializing Expenses Home Widget");
     // expenseRecords = DatabaseHelper.instance.getExpenses();
     // expenseListWidget = ExpenseList(expenses: DatabaseHelper.instance.getExpenses(),);
-    expensesBarChartStream = new StreamController();
-    expensesPieChartStream = new StreamController();
+    // expensesBarChartStream = new StreamController();
+    // expensesPieChartStream = new StreamController();
+    /*
     DatabaseHelper.instance.getCategoriesAggregation()?.then((records) {
       expensesBarChartStream.add(records);
     });
@@ -48,6 +53,10 @@ class _ExpensesAppHomeState extends State<ExpensesAppHome> {
     DatabaseHelper.instance.getPaymentModeAggregation().then((records) {
       expensesPieChartStream.add(records);
     });
+    */
+
+    expensesBarChartStream = DatabaseHelper.instance.getCategoriesAggregation().asStream();
+    expensesPieChartStream = DatabaseHelper.instance.getPaymentModeAggregation().asStream();
   }
 
   @override
@@ -114,8 +123,10 @@ class _ExpensesAppHomeState extends State<ExpensesAppHome> {
             }))
                 .then((value) {
               setState(() {
-                DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream.add(records));
-                DatabaseHelper.instance.getPaymentModeAggregation()?.then((records) => expensesPieChartStream.add(records));
+                // DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream.add(records));
+                // DatabaseHelper.instance.getPaymentModeAggregation()?.then((records) => expensesPieChartStream.add(records));
+                expensesBarChartStream = DatabaseHelper.instance.getCategoriesAggregation().asStream();
+                expensesPieChartStream = DatabaseHelper.instance.getPaymentModeAggregation().asStream();
               });
             });
           }, // OnPressed

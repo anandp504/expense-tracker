@@ -35,6 +35,7 @@ class ExpensesModel {
       loadedRecords = 0;
       _expenseData = List();
       hasMore = true;
+      offset = 0;
     }
 
     if (_isLoading || !hasMore) {

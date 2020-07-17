@@ -8,26 +8,39 @@ import 'package:expensesapp/com/anand/domain/expense_models.dart';
 
 
 class ExpensesChartView extends StatefulWidget {
+
+  final Stream<List<AggregateResult>> barChartStream;
+  final Stream<List<AggregateResult>> pieChartStream;
+
+  ExpensesChartView({this.barChartStream, this.pieChartStream});
+
   @override
-  _ExpensesChartViewState createState() => _ExpensesChartViewState();
+  _ExpensesChartViewState createState() => _ExpensesChartViewState(expensesBarChartStream: this.barChartStream, expensesPieChartStream: this.pieChartStream);
 }
 
 class _ExpensesChartViewState extends State<ExpensesChartView> {
 
-  StreamController<List<AggregateResult>> expensesBarChartStream;
-  StreamController<List<AggregateResult>> expensesPieChartStream;
+  // StreamController<List<AggregateResult>> expensesBarChartStream;
+  // StreamController<List<AggregateResult>> expensesPieChartStream;
+
+  Stream<List<AggregateResult>> expensesBarChartStream;
+  Stream<List<AggregateResult>> expensesPieChartStream;
+
+  _ExpensesChartViewState({this.expensesBarChartStream, this.expensesPieChartStream});
 
   void getChartData() {
-    DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream.add(records));
-    DatabaseHelper.instance.getPaymentModeAggregation().then((records) => expensesPieChartStream.add(records));
+    // DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream.add(records));
+    // DatabaseHelper.instance.getPaymentModeAggregation().then((records) => expensesPieChartStream.add(records));
+    expensesBarChartStream = DatabaseHelper.instance.getCategoriesAggregation().asStream();
+    expensesPieChartStream = DatabaseHelper.instance.getPaymentModeAggregation().asStream();
   }
 
   @override
   void initState() {
     super.initState();
-    expensesBarChartStream = new StreamController();
-    expensesPieChartStream = new StreamController();
-    getChartData();
+    // expensesBarChartStream = new StreamController();
+    // expensesPieChartStream = new StreamController();
+    // getChartData();
   }
 
   @override

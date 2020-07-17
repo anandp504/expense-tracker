@@ -180,7 +180,7 @@ class _ExpenseDetailFormState extends State<ExpenseDetailForm> {
   }
 
   void moveToLastScreen() {
-    Navigator.pop(context);
+    Navigator.pop(context, true);
   }
 
   @override

@@ -1,14 +1,10 @@
-import 'package:expensesapp/com/anand/db/db_helper.dart';
-import 'package:expensesapp/com/anand/screens/charts/expense_pie_chart.dart';
 import 'package:expensesapp/com/anand/screens/tabs/expenses_chart_view.dart';
-import 'package:expensesapp/com/anand/screens/expenses_list.dart';
 import 'package:expensesapp/com/anand/screens/tabs/expense_list_scroll.dart';
-import 'package:expensesapp/com/anand/screens/charts/expenses_bar_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:expensesapp/com/anand/screens/expenses_table.dart';
 import 'package:expensesapp/com/anand/screens/expense_form.dart';
-import 'dart:async';
+import 'package:expensesapp/com/anand/domain/expense_scroll_model.dart';
 import 'package:expensesapp/com/anand/domain/expense_models.dart';
+import 'package:expensesapp/com/anand/db/db_helper.dart';
 
 class ExpensesAppHomeTab extends StatefulWidget {
 
@@ -25,6 +21,9 @@ class _ExpensesAppHomeTabState extends State<ExpensesAppHomeTab> with SingleTick
   */
 
   TabController _tabController;
+  ExpensesModel expensesModel;
+  Stream<List<AggregateResult>> expensesBarChartStream;
+  Stream<List<AggregateResult>> expensesPieChartStream;
 
   /*
   void getChartData() {
@@ -37,6 +36,9 @@ class _ExpensesAppHomeTabState extends State<ExpensesAppHomeTab> with SingleTick
   void initState() {
     super.initState();
     _tabController = new TabController(length: 2, vsync: this);
+    expensesModel = ExpensesModel();
+    // DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream = Stream.value(records));
+    // DatabaseHelper.instance.getPaymentModeAggregation().then((records) => expensesPieChartStream = Stream.value(records));
     /*
     expenseRecordsStream = new StreamController();
     expensesBarChartStream = new StreamController();
@@ -75,8 +77,8 @@ class _ExpensesAppHomeTabState extends State<ExpensesAppHomeTab> with SingleTick
       body: TabBarView(
         children: [
           // ExpenseTileList(),
-          ExpenseTileListScroll(),
-          ExpensesChartView(),
+          ExpenseTileListScroll(expensesModel: expensesModel,),
+          ExpensesChartView(barChartStream: expensesBarChartStream, pieChartStream: expensesPieChartStream,),
         ],
         controller: _tabController,
       ),
@@ -89,6 +91,9 @@ class _ExpensesAppHomeTabState extends State<ExpensesAppHomeTab> with SingleTick
               return ExpenseDetailForm(appBarTitle: "Add Expense",);
             })).then((value) {
               setState(() {
+                expensesModel.refresh();
+                expensesBarChartStream = DatabaseHelper.instance.getCategoriesAggregation().asStream();
+                expensesPieChartStream = DatabaseHelper.instance.getPaymentModeAggregation().asStream();
                 /*
                 DatabaseHelper.instance.getCategoriesAggregation()?.then((records) => expensesBarChartStream.add(records));
                 DatabaseHelper.instance.getPaymentModeAggregation()?.then((records) => expensesPieChartStream.add(records));
